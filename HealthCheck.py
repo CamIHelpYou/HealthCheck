@@ -18,7 +18,7 @@ class SystemCall(object):
     def __init__(self, call):
         self.call = call
         self.output = self.command(call)
-        self.problemflag = False
+        self.problemMessage = ""
 
     def command(self, call):
         return os.popen(call).read()
@@ -39,21 +39,46 @@ def getoutput(Problems):
     '''
     appliance = SystemCall("cat /sys/devices/virtual/dmi/id/product_name")
     if "DN1-HW-APL" not in appliance.output:
-        appliance.problemflag = True
+        appliance.problemMessage = "Not a DNAC appliance"
         Problems.append(appliance)
 
     disk = SystemCall("df -h")
-    for line in disk.output.split('\n')
-        usageSearch = re.search(r'(\w+)(%)', line)
-        if int(usageSearch.group(1)) > 60:
-            disk.problemflag = True
+    for line in disk.output.split('\n'):
+        usageSearch = re.search(r'(\w+)([0-9]+%)', line)
+        if usageSearch is not None:
+            if int(usageSearch.group(1)) > 60:
+                disk.problemMessage = "Disk usage is high\n\n" + disk.output
 
     load = SystemCall("w")
     usageSearch = re.search(r'load\saverage:\s(.*)', load.output)
     cpu = usageSearch.group(1)
     for number in cpu.split(','):
-        if int(number) > 40:
-            load.problemflag = True
+        if float(number) > 40:
+            load.problemMessage = "CPU usage is high\n\n" + load.output
+
+    memory = SystemCall("free -h | awk '{print $6}'; free -h | awk '{print $3}' | grep B")
+    for line in memory.output.split('\n'):
+        availableSearch = re.search(r'(\w+)(G)', line)
+        swapSearch = re.search(r'(\w+)(B)', line)
+        if availableSearch is not None:
+            if float(freavailableSearch.group(1)) < 30:
+                memory.problemMessage = "Free memory is low\n\n" + memory.output
+        elif swapSearch is not None:
+            if float(swapSearch.group(1)) > 10:
+                memory.problemMessage = "Swap memory is high\n\n" + memory.output
+
+    dockerrun = SystemCall("systemctl status docker")
+    if "running" not in dockerrun.output:
+        dockerrun.problemMessage = "Docker is not running\n\n" + dockerrun.output
+
+    kuberun = SystemCall("systemctl status kubelet")
+    if "running" not in kuberun.output:
+        dockerrun.problemMessage = "Kubelet is not running\n\n" + kuberun.output
+
+    docker = SystemCall("docker ps -f status=exited | awk -F'  +' '{print $5}'")
+    for line in docker.output.split('\n'):
+        
+
 
     
 
