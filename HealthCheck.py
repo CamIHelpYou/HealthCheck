@@ -43,8 +43,21 @@ def getoutput(Problems):
         Problems.append(appliance)
 
     disk = SystemCall("df -h")
-    usageSearch = re.search(r'(?<=%)\w', disk.output)
-    print(usageSearch)
+    for line in disk.output.split('\n')
+        usageSearch = re.search(r'(\w+)(%)', line)
+        if int(usageSearch.group(1)) > 60:
+            disk.problemflag = True
+
+    load = SystemCall("w")
+    usageSearch = re.search(r'load\saverage:\s(.*)', load.output)
+    cpu = usageSearch.group(1)
+    for number in cpu.split(','):
+        if int(number) > 40:
+            load.problemflag = True
+
+    
+
+
 
 
 
