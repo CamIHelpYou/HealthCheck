@@ -127,7 +127,9 @@ def printProblems(Problems):
         return
     print('SYSTEM IS EXPERIENCING THE FOLLOWING ISSUES:\n')
     for element in Problems:
-        print(element.problemMessage)
+        print('\n')
+        print("--" + element.problemMessage)
+
 
 
 
