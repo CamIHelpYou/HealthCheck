@@ -28,8 +28,9 @@ def authentication():
     '''
     This function authenticates the user to make all the calls in getoutput()
     '''
-    os.system("sudo cat /sys/devices/virtual/dmi/id/chassis_serial")
     print("serial number is: ")
+    os.system("sudo cat /sys/devices/virtual/dmi/id/chassis_serial")
+
 
 
 def getoutput(Problems):
