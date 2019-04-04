@@ -92,6 +92,8 @@ def getoutput(Problems):
     nodestatus = SystemCall("magctl node display | grep -v STATUS")
     for line in nodestatus.output.split('\n'):
         if "Ready" not in line:
+            if line is '':
+                continue
             nodestatus.problemMessage = "Nodes not all ready\n" + nodestatus.output
             Problems.append(nodestatus)
             break
@@ -111,10 +113,12 @@ def getoutput(Problems):
         catalog.problemMessage = "Catalog server cannot reach the global catalog server at www.ciscoconnectdna.com:443"
         Problems.append(catalog)
 
-    state = SystemCall("maglev catalog system_update_package display")
+    state = SystemCall("maglev catalog system_update_package display | egrep [0-9]+ | grep -v https")
     for line in state.output.split('\n'):
         if "READY" not in line:
-            state.problemMessage = "System packages are not fully downloaded\n\n" + state.output
+            if line is '':
+                continue
+            state.problemMessage = "System packages are not fully downloaded\n" + state.output
             Problems.append(state)
             break
 
