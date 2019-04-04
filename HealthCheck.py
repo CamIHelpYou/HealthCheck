@@ -98,7 +98,7 @@ def getoutput(Problems):
 
     pods = SystemCall("""kubectl get pods --all-namespaces -o json | jq -r '.items[] | select(.status.reason!=null) | select(.status.reason | contains("Evicted")) | .metadata.name + " " + .metadata.namespace'""")
     if len(pods.output) is not 0:
-        pods.problemMessage = "Pods are not being reaped appropriately. Use the following to remove pods from the evicted state:\nkubectl get po -a --all-namespaces -o json | jq  '.items[] | select(.status.reason!=null) | select(.status.reason | contains("Evicted")) | "kubectl delete po \(.metadata.name) -n \(.metadata.namespace)"' | xargs -n 1 bash -c"
+        pods.problemMessage = """Pods are not being reaped appropriately. Use the following to remove pods from the evicted state:\nkubectl get po -a --all-namespaces -o json | jq  '.items[] | select(.status.reason!=null) | select(.status.reason | contains("Evicted")) | "kubectl delete po \(.metadata.name) -n \(.metadata.namespace)"' | xargs -n 1 bash -c"""
         Problems.append(pods)
 
     maglev = SystemCall("maglev package status")
