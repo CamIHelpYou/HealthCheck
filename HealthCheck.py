@@ -28,7 +28,6 @@ def authentication():
     '''
     This function authenticates the user to make all the calls in getoutput()
     '''
-    os.system("maglev login")
     print("serial number is: ")
     os.system("sudo cat /sys/devices/virtual/dmi/id/chassis_serial")
 
@@ -48,6 +47,8 @@ def getoutput(Problems):
         if usageSearch is not None:
             if int(usageSearch.group(1)) > 60:
                 disk.problemMessage = "Disk usage is high\n\n" + disk.output
+                Problems.append(disk)
+                break
 
     load = SystemCall("w")
     usageSearch = re.search(r'load\saverage:\s(.*)', load.output)
@@ -55,33 +56,78 @@ def getoutput(Problems):
     for number in cpu.split(','):
         if float(number) > 40:
             load.problemMessage = "CPU usage is high\n\n" + load.output
+            Problems.append(load)
+            break
 
     memory = SystemCall("free -h | awk '{print $6}'; free -h | awk '{print $3}' | grep B")
     for line in memory.output.split('\n'):
         availableSearch = re.search(r'(\w+)(G)', line)
         swapSearch = re.search(r'(\w+)(B)', line)
         if availableSearch is not None:
-            if float(freavailableSearch.group(1)) < 30:
+            if float(availableSearch.group(1)) < 30:
                 memory.problemMessage = "Free memory is low\n\n" + memory.output
+                Problems.append(memory)
+                break
         elif swapSearch is not None:
             if float(swapSearch.group(1)) > 10:
                 memory.problemMessage = "Swap memory is high\n\n" + memory.output
+                Problems.append(memory)
+                break
 
     dockerrun = SystemCall("systemctl status docker")
     if "running" not in dockerrun.output:
         dockerrun.problemMessage = "Docker is not running\n\n" + dockerrun.output
+        Problems.append(dockerrun)
 
     kuberun = SystemCall("systemctl status kubelet")
     if "running" not in kuberun.output:
         dockerrun.problemMessage = "Kubelet is not running\n\n" + kuberun.output
+        Problems.append(kuberun)
 
     docker = SystemCall("docker ps -f status=exited | awk -F'  +' '{print $5}'")
-    for line in docker.output.split('\n'):
-        
+    if "days" in docker.output:
+        docker.problemMessage = "Exited containers older than a day are present in 'docker ps -f status=exited'. Please use the following command to clear them:\ndocker rm -v $(docker ps -q -f status=exited)"
+        Problems.append(docker)
+
+    nodestatus = SystemCall("magctl node display | grep -v STATUS")
+    for line in nodestatus.output.split('\n'):
+        if "Ready" not in line:
+            nodestatus.problemMessage = "Nodes not all ready\n" + nodestatus.output
+            Problems.append(nodestatus)
+            break
+
+    pods = SystemCall("""kubectl get pods --all-namespaces -o json | jq -r '.items[] | select(.status.reason!=null) | select(.status.reason | contains("Evicted")) | .metadata.name + " " + .metadata.namespace'""")
+    if len(pods.output) is not 0:
+        pods.problemMessage = "Pods are not being reaped appropriately. Use the following to remove pods from the evicted state:\nkubectl get po -a --all-namespaces -o json | jq  '.items[] | select(.status.reason!=null) | select(.status.reason | contains("Evicted")) | "kubectl delete po \(.metadata.name) -n \(.metadata.namespace)"' | xargs -n 1 bash -c"
+        Problems.append(pods)
+
+    maglev = SystemCall("maglev package status")
+    if "DEPLOYED" not in maglev.output:
+        maglev.problemMessage = "Maglev commands aren't working, check the frontend API gateway (kong)"
+        Problems.append(maglev)
+
+    catalog = SystemCall("maglev catalog settings validate")
+    if "Parent catalog settings are valid" not in catalog.output:
+        catalog.problemMessage = "Catalog server cannot reach the global catalog server at www.ciscoconnectdna.com:443"
+        Problems.append(catalog)
+
+    state = SystemCall("maglev catalog system_update_package display")
+    for line in state.output.split('\n'):
+        if "READY" not in line:
+            state.problemMessage = "System packages are not fully downloaded\n\n" + state.output
+            Problems.append(state)
+            break
+
+    return Problems
 
 
-    
-
+def printProblems(Problems):
+    if len(Problems) is 0:
+        print('There are no issues')
+        return
+    print('SYSTEM IS EXPERIENCING THE FOLLOWING ISSUES:\n')
+    for element in Problems:
+        print(element.problemMessage)
 
 
 
@@ -91,7 +137,9 @@ Driver function
 '''
 Problems = []
 authentication()
-getoutput(Problems)
+Problems = getoutput(Problems)
+printProblems(Problems)
+print('done')
 
 
 
