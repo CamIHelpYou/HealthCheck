@@ -28,8 +28,8 @@ def authentication():
     '''
     This function authenticates the user to make all the calls in getoutput()
     '''
-    print("serial number is: ")
     os.system("sudo cat /sys/devices/virtual/dmi/id/chassis_serial")
+    print("serial number is: ")
 
 
 def getoutput(Problems):
@@ -129,10 +129,10 @@ def printProblems(Problems):
     if len(Problems) is 0:
         print('There are no issues')
         return
-    print('SYSTEM IS EXPERIENCING THE FOLLOWING ISSUES:\n')
+    print('SYSTEM IS EXPERIENCING THE FOLLOWING ISSUES:')
     for element in Problems:
         print('\n')
-        print("--" + element.problemMessage)
+        print("-- " + element.problemMessage)
 
 
 
