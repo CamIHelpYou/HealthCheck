@@ -1,7 +1,8 @@
-# HealthCheck
+# HealthCheck:
 Health Check for DNA Center
 
 
+### Usage:
 
 Meant to be run through the curl command:
 
